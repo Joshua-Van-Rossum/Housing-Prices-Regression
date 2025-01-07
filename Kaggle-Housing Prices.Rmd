@@ -1,0 +1,15 @@
+---
+title: "Kaggle-Housing Prices"
+author: "Joshua Van Rossum"
+date: "2025-01-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r cars}
+summary(cars)
+```
+
