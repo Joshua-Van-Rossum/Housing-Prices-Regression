@@ -7,9 +7,51 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyr)
 ```
 
 ```{r cars}
-summary(cars)
+training_data <- read.csv("train.csv")
+test_data <- read.csv("test.csv")
+training_data <- subset(training_data, select = -Id)
+training_data <- training_data %>% mutate(across(where(is.character), as.factor))
+test_data <- subset(test_data, select = -Id)
+test_data <- test_data %>% mutate(across(where(is.character), as.factor))
 ```
+
+```{r}
+handle_na <- function(data) {
+  for (col in names(data)) {
+    if (is.numeric(data[[col]])) {
+      # Replace NA with mean for numeric columns
+      data[[col]][is.na(data[[col]])] <- mean(data[[col]], na.rm = TRUE)
+    } else if (is.factor(data[[col]])) {
+      levels(data[[col]]) <- c(levels(data[[col]]), "N/A")  # Add "N/A" level if it doesn't exist
+      data[[col]][is.na(data[[col]])] <- "N/A"  # Replace NA with "N/A"
+    } else if (is.character(data[[col]])) {
+      # Replace NA with "Unknown" for character columns
+      data[[col]][is.na(data[[col]])] <- "Unknown"
+    }
+  }
+  return(data)
+}
+# Apply the function to both training and test data
+training_data <- handle_na(training_data)
+test_data <- handle_na(test_data)
+# Fit the model
+full <- lm(SalePrice ~ ., data = training_data)
+```
+
+```{r results = "hide"}
+ improved_model <- step(full,direction="both")
+
+```
+
+```{r}
+predictions_test <- predict(full, newdata = test_data)
+
+head(predictions_test)
+```
+
 
