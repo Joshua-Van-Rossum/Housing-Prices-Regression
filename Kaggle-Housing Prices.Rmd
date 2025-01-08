@@ -11,14 +11,19 @@ library(dplyr)
 library(tidyr)
 ```
 
-```{r cars}
+```{r}
+# Read the datasets
 training_data <- read.csv("train.csv")
 test_data <- read.csv("test.csv")
+
+# subtrat the ID column and format character columns as factors
 training_data <- subset(training_data, select = -Id)
 training_data <- training_data %>% mutate(across(where(is.character), as.factor))
+  
 test_data <- subset(test_data, select = -Id)
 test_data <- test_data %>% mutate(across(where(is.character), as.factor))
 ```
+
 
 ```{r}
 handle_na <- function(data) {
@@ -26,32 +31,54 @@ handle_na <- function(data) {
     if (is.numeric(data[[col]])) {
       # Replace NA with mean for numeric columns
       data[[col]][is.na(data[[col]])] <- mean(data[[col]], na.rm = TRUE)
+
     } else if (is.factor(data[[col]])) {
-      levels(data[[col]]) <- c(levels(data[[col]]), "N/A")  # Add "N/A" level if it doesn't exist
-      data[[col]][is.na(data[[col]])] <- "N/A"  # Replace NA with "N/A"
+      # Replace NA with the most common value for factor columns
+      mode_value <- names(sort(table(data[[col]], useNA = "no"), decreasing = TRUE))[1]
+      data[[col]][is.na(data[[col]])] <- mode_value
+      
+      
     } else if (is.character(data[[col]])) {
-      # Replace NA with "Unknown" for character columns
+      ## Should never be true
       data[[col]][is.na(data[[col]])] <- "Unknown"
+      print(col)
+      print("unkown")
     }
   }
   return(data)
 }
-# Apply the function to both training and test data
+# Clean the data sets
 training_data <- handle_na(training_data)
 test_data <- handle_na(test_data)
+
+
 # Fit the model
 full <- lm(SalePrice ~ ., data = training_data)
 ```
 
-```{r results = "hide"}
+```{r }
+# add and subtract factors until you have an optimal model
  improved_model <- step(full,direction="both")
 
 ```
 
 ```{r}
-predictions_test <- predict(full, newdata = test_data)
+# predict 
+predictions_test <- predict(improved_model, newdata = test_data)
 
 head(predictions_test)
 ```
+```{r}
+# IDS to reattach 
+ID <- seq(1461, by = 1, length.out = length(predictions_test))
 
+# Combine the ID and SalePrice columns into a data frame
+output <- data.frame(ID = ID, SalePrice = predictions_test)
+
+# write to CSV file
+write.csv(output, "predictions.csv", row.names = FALSE)
+
+# View the first few rows
+head(output)
+```
 
